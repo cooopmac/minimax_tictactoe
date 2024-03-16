@@ -10,6 +10,9 @@ class Player:
 
 
 class HumanPlayer(Player):
+    def __init__(self, name, game_piece):
+        super().__init__(name, game_piece)
+
     def make_move(self, board):
         valid_move = False
         while not valid_move:
@@ -24,14 +27,19 @@ class HumanPlayer(Player):
 
 
 class AIPlayer(Player):
+    def __init__(self, name, game_piece, opponent_piece):
+        super().__init__(name, game_piece)
+        self.opponent_piece = opponent_piece 
+
     def make_move(self, board):
-        move = minimax_search(board, self.game_piece)
+        # Correct usage of minimax_search with AI and opponent pieces
+        move = minimax_search(board, self.game_piece, self.opponent_piece)
         if move:
             board.place_game_peice(self.game_piece, move[0], move[1])
         else:
             print("No valid moves available.")
 
-    
+
 class Board:
     def __init__(self, n):
         self.n = n
@@ -133,17 +141,24 @@ class Board:
         # Uses the has_row, has_col, has_diag, has_square, and has_plus methods to determine if the game is won
         return (self.has_row() or self.has_col() or self.has_diag() or
                 (self.n >= 4 and (self.has_square() or self.has_plus())))
+    
+    def game_tie(self):
+        # Check if all spaces are filled and there is no winner
+        return all(cell != "." for row in self.board for cell in row) and not self.game_won()
+
 
 class Game:
     def __init__(self, board_size, player_name, player_piece):
-        self.board = Board(board_size) 
-        ai_piece = 'O' if player_piece == 'X' else 'X'  # Automatically assign the opposite piece to AI
-        # Initialize players based on the chosen piece
+        self.board = Board(board_size)
+        ai_piece = 'O' if player_piece == 'X' else 'X'  # Determine AI piece based on player's choice
+        
+        # Initialize players. AIPlayer needs to know about the opponent's piece.
         if player_piece == 'X':
-            self.players = [HumanPlayer(player_name, player_piece), AIPlayer("AI Player", ai_piece)]
+            self.players = [HumanPlayer(player_name, player_piece), AIPlayer("AI Player", ai_piece, player_piece)]
+            self.current_player_index = 0  # Start with the human player
         else:
-            self.players = [AIPlayer("AI Player", ai_piece), HumanPlayer(player_name, player_piece)]
-        self.current_player_index = 0
+            self.players = [AIPlayer("AI Player", ai_piece, player_piece), HumanPlayer(player_name, player_piece)]
+            self.current_player_index = 0  # Start with the AI player if the human chooses 'O'
 
     def play(self):
         # Main game loop
@@ -174,18 +189,17 @@ class Game:
 
     def is_game_over(self):
         # Check for a win or draw
-        return self.board.game_won()
+        return self.board.game_won() or self.board.game_tie()
 
     def display_winner(self):
         # Display the game outcome
         if self.board.game_won():
-            winner = "Player 1" if self.current_player_index == 1 else "AI Player"
-            print(f"{winner} wins!")
-        else:
+            winner_index = (self.current_player_index - 1) % len(self.players)
+            winner_name = self.players[winner_index].name
+            print(f"{winner_name} wins!")
+        elif self.board.game_tie():
             print("It's a draw!")
 
-    # Additional methods for evaluating moves, implementing move ordering,
-    # and handling complex win conditions would also be included here.
 
 def start_menu():
     print("Welcome to Tic-Tac-Toe!")
